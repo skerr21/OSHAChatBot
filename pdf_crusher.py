@@ -1,29 +1,45 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from PyPDF2 import PdfReader 
 import os
-import re
-from pathlib import Path
+from tqdm import tqdm
+import threading
 
-from pdfminer.high_level import extract_text
-import nltk
-from nltk.tokenize import word_tokenize
+def pdf_to_text(pdf_file):
+    print("Processing: ", pdf_file)
+    pdf = PdfReader(pdf_file)
+    text = ""
 
-input_folder = 'osha_pdfs'
-output_file = 'cleaned_text.txt'
+    for page in pdf.pages:
+        text += page.extract_text()
 
-combined_text = ""
+    return text.encode('utf-8', errors='ignore').decode()
 
-for pdf_path in Path(input_folder).glob('*.pdf'):
-    text = extract_text(pdf_path)
-    
-    # Clean text
-    text = re.sub(r'\n\s*\n', '\n', text) # Remove blank lines
-    text = re.sub(r'[\n\t\s]+', ' ', text) # Replace newlines, tabs, multiple spaces with single space
-    
-    combined_text += text + "\n"
-    
-with open(output_file, 'w') as f:
-    f.write(combined_text)
-    
-# Tokenize
-tokens = word_tokenize(combined_text)
+pdf_folder = r'F:\ConversationalOsha\osha_pdfs'
+output_file = 'output.txt'
 
-print(f"Saved {len(tokens)} tokens to {output_file}")
+full_text = [] 
+
+with ThreadPoolExecutor(max_workers=8) as executor:
+
+    futures = [executor.submit(pdf_to_text, os.path.join(pdf_folder, pdf))
+               for pdf in os.listdir(pdf_folder) if pdf.endswith('.pdf')]
+
+    with tqdm(total=len(futures)) as progress:
+        for i, future in enumerate(as_completed(futures)):
+            text = future.result()
+
+            full_text.append(text)
+            
+            # Save progress every 100 files
+            if i % 100 == 0:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    f.write('\n\n'.join(full_text))
+                    print('Saved progress')
+
+            progress.update(1)
+
+# Final save            
+with open(output_file, 'w', encoding='utf-8') as f:
+    f.write('\n\n'.join(full_text))
+
+print('Completed!')
