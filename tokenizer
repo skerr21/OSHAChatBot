@@ -1,0 +1,38 @@
+import nltk
+from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
+
+# NLTK downloads
+# nltk.download()
+# nltk.download('averaged_perceptron_tagger')
+# nltk.download('maxent_ne_chunker')  
+# nltk.download('stopwords')
+# nltk.download('wordnet')
+# nltk.download('punkt')
+# nltk.download('naivebayes')
+# nltk.download('omw-1.4')
+
+# Load text
+with open('output.txt', 'r', encoding='utf-8') as f:
+    text = f.read()
+    
+# Tokenize
+tokens = nltk.word_tokenize(text)
+
+# POS tag 
+pos_tags = nltk.pos_tag(tokens)
+
+# Named entity recognition
+named_entities = nltk.ne_chunk(pos_tags)  
+
+# Lemmatize
+lemmatizer = WordNetLemmatizer()
+lemmas = [lemmatizer.lemmatize(token) for token in tokens]
+
+# Remove stopwords
+stop_words = set(stopwords.words('english')) 
+filtered_tokens = [token for token in lemmas if token not in stop_words]  
+
+# Write cleaned text
+with open('cleaned_text.txt', 'w', encoding='utf-8') as f:
+    f.write(" ".join(filtered_tokens))
